@@ -1,0 +1,9 @@
+grammar de.fhb.mdsd.Mobile with org.eclipse.xtext.common.Terminals
+
+generate mobile "http://www.fhb.de/mdsd/Mobile"
+
+Model:
+	greetings+=Greeting*;
+	
+Greeting:
+	'Hello' name=ID '!';
