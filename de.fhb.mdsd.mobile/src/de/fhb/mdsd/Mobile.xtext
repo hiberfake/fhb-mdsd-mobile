@@ -3,7 +3,40 @@ grammar de.fhb.mdsd.Mobile with org.eclipse.xtext.common.Terminals
 generate mobile "http://www.fhb.de/mdsd/Mobile"
 
 Model:
-	greetings+=Greeting*;
-	
-Greeting:
-	'Hello' name=ID '!';
+	(elements+=AbstractElement)*;
+
+PackageDeclaration:
+	'package' name=QualifiedName '{'
+	(elements+=AbstractElement)*
+	'}';
+
+AbstractElement:
+	PackageDeclaration | Type | Import | Activity;
+
+QualifiedName:
+	ID ('.' ID)*;
+
+Import:
+	'import' importedNamespace=QualifiedNameWithWildcard;
+
+QualifiedNameWithWildcard:
+	QualifiedName '.*'?;
+
+Type:
+	DataType | Entity;
+
+DataType:
+	'datatype' name=ID;
+
+Entity:
+	'entity' name=ID
+	('extends' superType=[Entity|QualifiedName])?
+	'{'
+	(features+=Feature)*
+	'}';
+
+Feature:
+	(many?='many')? name=ID ':' type=[Type|QualifiedName];
+
+Activity:
+	'activity' name=ID;
