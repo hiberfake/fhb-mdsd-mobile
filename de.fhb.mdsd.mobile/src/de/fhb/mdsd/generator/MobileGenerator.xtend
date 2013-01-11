@@ -42,8 +42,8 @@ class MobileGenerator implements IGenerator {
 				«FOR a : resource.allContents.toIterable.filter(typeof(Activity))»
 				<activity
 					android:name="«a.name.toFirstUpper»Activity"
-					android:label="«a.name.toFirstUpper»" >
 					«IF a.main != null»
+					android:label="@string/app_name" >
 					<intent-filter>
 						<action android:name="android.intent.action.MAIN" />
 						
@@ -63,23 +63,52 @@ class MobileGenerator implements IGenerator {
 		«ENDIF»
 		
 		import android.app.ActionBar;
-		import android.app.ActionBar.Tab;
-		import android.app.ActionBar.TabListener;
 		import android.app.FragmentTransaction;
+		import android.content.Intent;
 		import android.os.Bundle;
+		import android.support.v4.app.Fragment;
 		import android.support.v4.app.FragmentActivity;
+		import android.support.v4.app.FragmentManager;
+		import android.support.v4.app.FragmentPagerAdapter;
+		import android.support.v4.view.ViewPager;
+		import android.view.Gravity;
+		import android.view.LayoutInflater;
+		import android.view.Menu;
+		import android.view.View;
+		import android.view.ViewGroup;
+		import android.widget.TextView;
 		
-		public class «a.name»Activity extends FragmentActivity {
+		public class «a.name»Activity extends FragmentActivity «IF a.viewControl.tabs != null»implements ActionBar.TabListener «ENDIF»{
 			
+			«IF a.viewControl.tabs != null»
+			PagerAdapter mPagerAdapter;
+			
+			ViewPager mViewPager;
+			
+			«ENDIF»
 			@Override
 			protected void onCreate(Bundle savedInstanceState) {
 				super.onCreate(savedInstanceState);
+				setContentView(R.layout.«a.name.toLowerCase»);
 				
 				final ActionBar actionBar = getActionBar();
 				«IF a.viewControl.tabs != null»
 				actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
+				
+				mPagerAdapter = new PagerAdapter(getSupportFragmentManager());
+				
+				mViewPager = (ViewPager) findViewById(R.id.pager);
+				mViewPager.setAdapter(mPagerAdapter);
+
+				mViewPager.setOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
+					@Override
+					public void onPageSelected(int position) {
+						actionBar.setSelectedNavigationItem(position);
+					}
+				});
+				
 				«FOR t : a.viewControl.tabs»
-				actionBar.addTab(actionBar.newTab().setText("«t.text»").setTabListener(mTabListener));
+				actionBar.addTab(actionBar.newTab().setText("«t.text.toUpperCase»").setTabListener(this));
 				«IF t.selected != null»
 				actionBar.setSelectedNavigationItem(«a.viewControl.tabs.indexOf(t)»);
 				«ENDIF»
@@ -88,22 +117,60 @@ class MobileGenerator implements IGenerator {
 			}
 			
 			«IF a.viewControl.tabs != null»
-			TabListener mTabListener = new TabListener() {
+			@Override
+			public void onTabUnselected(ActionBar.Tab tab, FragmentTransaction ft) {
+			}
+			
+			@Override
+			public void onTabSelected(ActionBar.Tab tab, FragmentTransaction ft) {
+				mViewPager.setCurrentItem(tab.getPosition());
+			}
+			
+			@Override
+			public void onTabReselected(ActionBar.Tab tab, FragmentTransaction ft) {
+			}
+			
+			public class PagerAdapter extends FragmentPagerAdapter {
 				
-				@Override
-				public void onTabUnselected(Tab tab, FragmentTransaction ft) {
+				public PagerAdapter(FragmentManager fm) {
+					super(fm);
 				}
 				
 				@Override
-				public void onTabSelected(Tab tab, FragmentTransaction ft) {
-					
+				public Fragment getItem(int position) {
+					Fragment fragment = new DummySectionFragment();
+					Bundle args = new Bundle();
+					args.putInt(DummySectionFragment.ARG_SECTION_NUMBER, position + 1);
+					fragment.setArguments(args);
+					return fragment;
+				}
+
+				@Override
+				public int getCount() {
+					return 3;
 				}
 				
 				@Override
-				public void onTabReselected(Tab tab, FragmentTransaction ft) {
-					
+				public CharSequence getPageTitle(int position) {
+					return getActionBar().getTabAt(position).getText().toString().toUpperCase();
 				}
-			};
+			}
+			
+			public static class DummySectionFragment extends Fragment {
+
+				public static final String ARG_SECTION_NUMBER = "section_number";
+				
+				public DummySectionFragment() {
+				}
+				
+				@Override
+				public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+					TextView textView = new TextView(getActivity());
+					textView.setGravity(Gravity.CENTER);
+					textView.setText(getActivity().getActionBar().getTabAt(getArguments().getInt(ARG_SECTION_NUMBER) - 1).getText());
+					return textView;
+				}
+			}
 			«ENDIF»
 		}
 	'''

@@ -27,7 +27,7 @@ Tabs:
 Tab:
 	'tab' (selected='selected')? '{'
 	'text' text=STRING
-	('view' view=STRING)?
+	('view' view=Fragment)?
 	'}';
 
 Spinner:
@@ -35,3 +35,9 @@ Spinner:
 
 Drawer:
 	'drawer' '{' '}';
+	
+Fragment:
+	'fragment' '{'
+	
+	'}'
+;
