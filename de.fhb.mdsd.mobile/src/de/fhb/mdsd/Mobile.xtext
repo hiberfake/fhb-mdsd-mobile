@@ -3,40 +3,35 @@ grammar de.fhb.mdsd.Mobile with org.eclipse.xtext.common.Terminals
 generate mobile "http://www.fhb.de/mdsd/Mobile"
 
 Model:
-	(elements+=AbstractElement)*;
+	app=App
+	(activities+=Activity)*;
 
-PackageDeclaration:
-	'package' name=QualifiedName '{'
-	(elements+=AbstractElement)*
+App:
+	'app' '{'
+	'package name' packageName=QualifiedName
 	'}';
-
-AbstractElement:
-	PackageDeclaration | Type | Import | Activity;
 
 QualifiedName:
 	ID ('.' ID)*;
 
-Import:
-	'import' importedNamespace=QualifiedNameWithWildcard;
-
-QualifiedNameWithWildcard:
-	QualifiedName '.*'?;
-
-Type:
-	DataType | Entity;
-
-DataType:
-	'datatype' name=ID;
-
-Entity:
-	'entity' name=ID
-	('extends' superType=[Entity|QualifiedName])?
-	'{'
-	(features+=Feature)*
+Activity:
+	'activity' (main='main')? name=ID '{'
+	('view control' viewControl=Tabs | Spinner | Drawer)?
 	'}';
 
-Feature:
-	(many?='many')? name=ID ':' type=[Type|QualifiedName];
+Tabs:
+	'tabs' '{'
+	{Tabs} (tabs+=Tab)*
+	'}';
 
-Activity:
-	'activity' name=ID;
+Tab:
+	'tab' (selected='selected')? '{'
+	'text' text=STRING
+	('view' view=STRING)?
+	'}';
+
+Spinner:
+	'spinner' '{' '}';
+
+Drawer:
+	'drawer' '{' '}';

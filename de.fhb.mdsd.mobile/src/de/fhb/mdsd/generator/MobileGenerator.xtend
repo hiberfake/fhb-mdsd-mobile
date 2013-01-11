@@ -5,8 +5,7 @@ package de.fhb.mdsd.generator
 
 import com.google.inject.Inject
 import de.fhb.mdsd.mobile.Activity
-import de.fhb.mdsd.mobile.Entity
-import de.fhb.mdsd.mobile.Feature
+import de.fhb.mdsd.mobile.App
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess
 import org.eclipse.xtext.generator.IGenerator
@@ -17,53 +16,95 @@ class MobileGenerator implements IGenerator {
 	@Inject extension IQualifiedNameProvider
  
   	override void doGenerate(Resource resource, IFileSystemAccess fsa) {
-    	fsa.generateFile("../src/Test.xml",compileManifest());
+    	fsa.generateFile("../AndroidManifest.xml", resource.compileManifest);
     	
-    	for(e: resource.allContents.toIterable.filter(typeof(Entity))) {
-      		fsa.generateFile(e.fullyQualifiedName.toString("/") + ".java", e.compile)
-    	}
-    
-		for(a: resource.allContents.toIterable.filter(typeof(Activity))) {
-      		fsa.generateFile(a.fullyQualifiedName.toString("/") + "Activity.java", a.compile)
+    	for(a : resource.allContents.toIterable.filter(typeof(Activity))) {
+      		fsa.generateFile(resource.allContents.filter(typeof(App)).head.packageName.replace(".", "/") + "/" + a.name.toFirstUpper + "Activity.java", a.compile)
     	}
     }
   
-  	def compileManifest()'''
-  	
+  	def compileManifest(Resource resource)'''
+		<?xml version="1.0" encoding="utf-8"?>
+		<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+			package="«resource.allContents.filter(typeof(App)).head.packageName»"
+			android:versionCode="1"
+			android:versionName="1.0" >
+		
+			<uses-sdk
+				android:minSdkVersion="11"
+				android:targetSdkVersion="17" />
+
+			<application
+				android:allowBackup="true"
+				android:icon="@drawable/ic_launcher"
+				android:label="@string/app_name"
+				android:theme="@style/AppTheme" >
+				«FOR a : resource.allContents.toIterable.filter(typeof(Activity))»
+				<activity
+					android:name="«a.name.toFirstUpper»Activity"
+					android:label="«a.name.toFirstUpper»" >
+					«IF a.main != null»
+					<intent-filter>
+						<action android:name="android.intent.action.MAIN" />
+						
+						<category android:name="android.intent.category.LAUNCHER" />
+					</intent-filter>
+					«ENDIF»
+				</activity>
+	        	«ENDFOR»
+		</application>
+
+		</manifest>
   	'''
   	  
-	def compile(Activity a) ''' 
-    	«IF a.eContainer != null»package «a.eContainer.fullyQualifiedName»;«ENDIF»
+	def compile(Activity a) '''
+		«IF a.eContainer != null»
+		package «a.eContainer.eAllContents.toIterable.filter(typeof(App)).head.packageName»;
+		«ENDIF»
 		
-		import android.app.Activity;
+		import android.app.ActionBar;
+		import android.app.ActionBar.Tab;
+		import android.app.ActionBar.TabListener;
+		import android.app.FragmentTransaction;
 		import android.os.Bundle;
+		import android.support.v4.app.FragmentActivity;
 		
-		public class «a.name»Activity extends Activity {
-		
+		public class «a.name»Activity extends FragmentActivity {
+			
+			@Override
+			protected void onCreate(Bundle savedInstanceState) {
+				super.onCreate(savedInstanceState);
+				
+				final ActionBar actionBar = getActionBar();
+				«IF a.viewControl.tabs != null»
+				actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
+				«FOR t : a.viewControl.tabs»
+				actionBar.addTab(actionBar.newTab().setText("«t.text»").setTabListener(mTabListener));
+				«IF t.selected != null»
+				actionBar.setSelectedNavigationItem(«a.viewControl.tabs.indexOf(t)»);
+				«ENDIF»
+				«ENDFOR»
+				«ENDIF»
+			}
+			
+			«IF a.viewControl.tabs != null»
+			TabListener mTabListener = new TabListener() {
+				
+				@Override
+				public void onTabUnselected(Tab tab, FragmentTransaction ft) {
+				}
+				
+				@Override
+				public void onTabSelected(Tab tab, FragmentTransaction ft) {
+					
+				}
+				
+				@Override
+				public void onTabReselected(Tab tab, FragmentTransaction ft) {
+					
+				}
+			};
+			«ENDIF»
 		}
-	'''
- 
-  	def compile(Entity e) ''' 
-    	«IF e.eContainer != null»
-    	package «e.eContainer.fullyQualifiedName»;
-    	«ENDIF»
-    
-    	public class «e.name» «IF e.superType != null»extends «e.superType.fullyQualifiedName» «ENDIF»{
-      	«FOR f:e.features»
-        	«f.compile»
-      	«ENDFOR»
-    	}
-  	'''
- 
-  	def compile(Feature f) '''
-    	private «f.type.fullyQualifiedName» «f.name»;
-    	
-    	public «f.type.fullyQualifiedName» get«f.name.toFirstUpper»() {
-    	return «f.name»;
-    	}
-    	
-    	public void set«f.name.toFirstUpper»(«f.type.fullyQualifiedName» «f.name») {
-    	this.«f.name» = «f.name»;
-    	}
 	'''
 }
