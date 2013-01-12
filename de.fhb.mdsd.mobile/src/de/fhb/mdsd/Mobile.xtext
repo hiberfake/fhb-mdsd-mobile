@@ -9,6 +9,7 @@ Model:
 App:
 	'app' '{'
 		'package name' packageName=QualifiedName
+		'design' design='light' | 'dark' | 'light with dark action bar'
 	'}';
 
 QualifiedName:
@@ -17,6 +18,7 @@ QualifiedName:
 Activity:
 	'activity' (main='main')? name=ID '{'
 	//	('view control' viewControl=(Tabs | Dropdown))?
+		('label' label=STRING)?
 		('navigation type' '{'
 			navigationType=NavigationType
 		'}')?

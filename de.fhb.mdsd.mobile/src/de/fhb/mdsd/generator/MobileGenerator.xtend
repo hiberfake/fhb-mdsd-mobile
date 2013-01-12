@@ -19,6 +19,7 @@ class MobileGenerator implements IGenerator {
  
   	override void doGenerate(Resource resource, IFileSystemAccess fsa) {
     	fsa.generateFile("../AndroidManifest.xml", resource.compileManifest);
+    	fsa.generateFile("../res/values/styles.xml", resource.allContents.filter(typeof(App)).head.compileStyles)
     	
     	for(a : resource.allContents.toIterable.filter(typeof(Activity))) {
       		fsa.generateFile(resource.allContents.filter(typeof(App)).head.packageName.replace(".", "/") + "/" + a.name.toFirstUpper + "Activity.java", a.compile)
@@ -26,7 +27,7 @@ class MobileGenerator implements IGenerator {
     	}
     }
   
-  	def compileManifest(Resource resource)'''
+  	def compileManifest(Resource resource) '''
 		<?xml version="1.0" encoding="utf-8"?>
 		<manifest xmlns:android="http://schemas.android.com/apk/res/android"
 			package="«resource.allContents.filter(typeof(App)).head.packageName»"
@@ -43,10 +44,14 @@ class MobileGenerator implements IGenerator {
 				android:label="@string/app_name"
 				android:theme="@style/AppTheme" >
 				«FOR a : resource.allContents.toIterable.filter(typeof(Activity))»
+				«IF a.label != null»
 				<activity
 					android:name="«a.name.toFirstUpper»Activity"
+					android:label="«a.label»" >
+				«ELSE»
+				<activity android:name="«a.name.toFirstUpper»Activity" >
+				«ENDIF»
 					«IF a.main != null»
-					android:label="@string/app_name" >
 					<intent-filter>
 						<action android:name="android.intent.action.MAIN" />
 						
@@ -59,6 +64,22 @@ class MobileGenerator implements IGenerator {
 
 		</manifest>
   	'''
+
+	def compileStyles(App app) '''
+		<resources>
+			
+			«IF app.design.equals("light")»
+			<style name="AppTheme" parent="android:Theme.Holo.Light" />
+			«ELSEIF app.design.equals("dark")»
+			<style name="AppTheme" parent="android:Theme.Holo" />
+			«ELSEIF app.design.equals("light with dark action bar")»
+			<style name="AppTheme" parent="android:Theme.Holo.Light.DarkActionBar" />
+			«ELSE»
+			<style name="AppTheme" parent="android:Theme.Holo.Light" />
+			«ENDIF»
+		
+		</resources>
+	'''
   	  
 	def compile(Activity a) '''
 		«IF a.eContainer != null»
@@ -96,6 +117,9 @@ class MobileGenerator implements IGenerator {
 				setContentView(R.layout.«a.name.toLowerCase»);
 				
 				final ActionBar actionBar = getActionBar();
+				«IF a.navigationType.elements.filter(typeof(Row)).size > 0»
+				actionBar.setDisplayShowTitleEnabled(false);
+				«ENDIF»
 				«IF a.navigationType.elements.filter(typeof(Tab)).size > 0»
 				actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
 				
@@ -128,7 +152,7 @@ class MobileGenerator implements IGenerator {
 						android.R.layout.simple_list_item_1, android.R.id.text1,
 						new String[] {
 							«FOR r : a.navigationType.elements.filter(typeof(Row))»
-							"«r.text.toUpperCase»",
+							"«r.text.toFirstUpper»",
 							«ENDFOR»
 						}),
 					this);
