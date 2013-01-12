@@ -8,7 +8,7 @@ Model:
 
 App:
 	'app' '{'
-	'package name' packageName=QualifiedName
+		'package name' packageName=QualifiedName
 	'}';
 
 QualifiedName:
@@ -16,28 +16,26 @@ QualifiedName:
 
 Activity:
 	'activity' (main='main')? name=ID '{'
-	('view control' viewControl=Tabs | Spinner | Drawer)?
+	//	('view control' viewControl=(Tabs | Dropdown))?
+		('navigation type' '{'
+			navigationType=NavigationType
+		'}')?
 	'}';
 
-Tabs:
-	'tabs' '{'
-	{Tabs} (tabs+=Tab)*
-	'}';
+NavigationType:
+	{NavigationType} elements+=(Tab | Row)*;
 
 Tab:
 	'tab' (selected='selected')? '{'
-	'text' text=STRING
-	('view' view=Fragment)?
+		'text' text=STRING
+		('view' view=Fragment)?
 	'}';
 
-Spinner:
-	'spinner' '{' '}';
+Row:
+	'row' (selected='selected')? '{'
+		'text' text=STRING
+	'}';
 
-Drawer:
-	'drawer' '{' '}';
-	
 Fragment:
 	'fragment' '{'
-	
-	'}'
-;
+	'}';

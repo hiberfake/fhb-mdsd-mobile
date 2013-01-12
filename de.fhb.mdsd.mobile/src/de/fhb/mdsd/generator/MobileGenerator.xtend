@@ -6,6 +6,8 @@ package de.fhb.mdsd.generator
 import com.google.inject.Inject
 import de.fhb.mdsd.mobile.Activity
 import de.fhb.mdsd.mobile.App
+import de.fhb.mdsd.mobile.Row
+import de.fhb.mdsd.mobile.Tab
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess
 import org.eclipse.xtext.generator.IGenerator
@@ -20,6 +22,7 @@ class MobileGenerator implements IGenerator {
     	
     	for(a : resource.allContents.toIterable.filter(typeof(Activity))) {
       		fsa.generateFile(resource.allContents.filter(typeof(App)).head.packageName.replace(".", "/") + "/" + a.name.toFirstUpper + "Activity.java", a.compile)
+      		fsa.generateFile("../res/layout/" + a.name.toLowerCase + ".xml", a.compileLayout)
     	}
     }
   
@@ -31,7 +34,7 @@ class MobileGenerator implements IGenerator {
 			android:versionName="1.0" >
 		
 			<uses-sdk
-				android:minSdkVersion="11"
+				android:minSdkVersion="14"
 				android:targetSdkVersion="17" />
 
 			<application
@@ -76,11 +79,12 @@ class MobileGenerator implements IGenerator {
 		import android.view.Menu;
 		import android.view.View;
 		import android.view.ViewGroup;
+		import android.widget.ArrayAdapter;
 		import android.widget.TextView;
 		
-		public class «a.name»Activity extends FragmentActivity «IF a.viewControl.tabs != null»implements ActionBar.TabListener «ENDIF»{
+		public class «a.name»Activity extends FragmentActivity «IF a.navigationType.elements.filter(typeof(Tab)).size > 0»implements ActionBar.TabListener «ELSEIF a.navigationType.elements.filter(typeof(Row)).size > 0»implements ActionBar.OnNavigationListener «ENDIF»{
 			
-			«IF a.viewControl.tabs != null»
+			«IF a.navigationType.elements.filter(typeof(Tab)).size > 0»
 			PagerAdapter mPagerAdapter;
 			
 			ViewPager mViewPager;
@@ -92,7 +96,7 @@ class MobileGenerator implements IGenerator {
 				setContentView(R.layout.«a.name.toLowerCase»);
 				
 				final ActionBar actionBar = getActionBar();
-				«IF a.viewControl.tabs != null»
+				«IF a.navigationType.elements.filter(typeof(Tab)).size > 0»
 				actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
 				
 				mPagerAdapter = new PagerAdapter(getSupportFragmentManager());
@@ -107,16 +111,36 @@ class MobileGenerator implements IGenerator {
 					}
 				});
 				
-				«FOR t : a.viewControl.tabs»
+				«FOR t : a.navigationType.elements.filter(typeof(Tab))»
 				actionBar.addTab(actionBar.newTab().setText("«t.text.toUpperCase»").setTabListener(this));
+				«ENDFOR»
+				«FOR t : a.navigationType.elements.filter(typeof(Tab))»
 				«IF t.selected != null»
-				actionBar.setSelectedNavigationItem(«a.viewControl.tabs.indexOf(t)»);
+				actionBar.setSelectedNavigationItem(«a.navigationType.elements.indexOf(t)»);
+				«ENDIF»
+				«ENDFOR»
+				«ELSEIF a.navigationType.elements.filter(typeof(Row)).size > 0»
+				actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_LIST);
+				
+				actionBar.setListNavigationCallbacks(
+					new ArrayAdapter<String>(
+						actionBar.getThemedContext(),
+						android.R.layout.simple_list_item_1, android.R.id.text1,
+						new String[] {
+							«FOR r : a.navigationType.elements.filter(typeof(Row))»
+							"«r.text.toUpperCase»",
+							«ENDFOR»
+						}),
+					this);
+				«FOR r : a.navigationType.elements.filter(typeof(Row))»
+				«IF r.selected != null»
+				actionBar.setSelectedNavigationItem(«a.navigationType.elements.indexOf(r)»);
 				«ENDIF»
 				«ENDFOR»
 				«ENDIF»
 			}
 			
-			«IF a.viewControl.tabs != null»
+			«IF a.navigationType.elements.filter(typeof(Tab)).size > 0»
 			@Override
 			public void onTabUnselected(ActionBar.Tab tab, FragmentTransaction ft) {
 			}
@@ -156,6 +180,20 @@ class MobileGenerator implements IGenerator {
 				}
 			}
 			
+			«ELSEIF a.navigationType.elements.filter(typeof(Row)).size > 0»
+			@Override
+			public boolean onNavigationItemSelected(int position, long id) {
+				Fragment fragment = new DummySectionFragment();
+				Bundle args = new Bundle();
+				args.putInt(DummySectionFragment.ARG_SECTION_NUMBER, position + 1);
+				fragment.setArguments(args);
+				getSupportFragmentManager().beginTransaction().replace(R.id.container, fragment).commit();
+				return true;
+			}
+			
+			«ENDIF»
+			
+			«IF a.navigationType.elements.size > 0»
 			public static class DummySectionFragment extends Fragment {
 
 				public static final String ARG_SECTION_NUMBER = "section_number";
@@ -167,11 +205,25 @@ class MobileGenerator implements IGenerator {
 				public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
 					TextView textView = new TextView(getActivity());
 					textView.setGravity(Gravity.CENTER);
-					textView.setText(getActivity().getActionBar().getTabAt(getArguments().getInt(ARG_SECTION_NUMBER) - 1).getText());
+					textView.setText(Integer.toString(getArguments().getInt(ARG_SECTION_NUMBER)));
 					return textView;
 				}
 			}
 			«ENDIF»
 		}
+	'''
+	
+	def compileLayout(Activity a) '''
+		«IF a.navigationType.elements.filter(typeof(Tab)).size > 0»
+		<android.support.v4.view.ViewPager xmlns:android="http://schemas.android.com/apk/res/android"
+			android:id="@+id/pager"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent" />
+		«ELSEIF a.navigationType.elements.filter(typeof(Row)).size > 0»
+		<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+			android:id="@+id/container"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent" />
+		«ENDIF»
 	'''
 }
