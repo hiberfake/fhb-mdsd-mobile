@@ -9,7 +9,7 @@ Model:
 App:
 	'app' '{'
 		'package name' packageName=QualifiedName
-		'design' design='light' | 'dark' | 'light with dark action bar'
+		'design' design=('light' | 'dark' | 'light with dark action bar')
 	'}';
 
 QualifiedName:
