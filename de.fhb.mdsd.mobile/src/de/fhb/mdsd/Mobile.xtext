@@ -8,8 +8,9 @@ Model:
 
 App:
 	'app' '{'
-		'package name' packageName=QualifiedName
-		'design' design=('light' | 'dark' | 'light with dark action bar')
+		'packageName' packageName=QualifiedName
+		'design' design=('light' | 'dark' | 'lightWithDarkActionBar')
+		('bottomBar' bottomBar=('true' | 'false'))?
 	'}';
 
 QualifiedName:
@@ -17,27 +18,63 @@ QualifiedName:
 
 Activity:
 	'activity' (main='main')? name=ID '{'
-	//	('view control' viewControl=(Tabs | Dropdown))?
 		('label' label=STRING)?
-		('navigation type' '{'
-			navigationType=NavigationType
+		('navigation' '{'
+			navigation=Navigation
+		'}')?
+		('menu' '{'
+			menu=Menu
+		'}')?
+		('view' '{'
+			view=View
 		'}')?
 	'}';
 
-NavigationType:
-	{NavigationType} elements+=(Tab | Row)*;
+Navigation:
+	{Navigation} elements+=(Tab | Row)*;
+	
+Menu:
+	{Menu} items+=MenuItem*;
+	
+MenuItem:
+	'item' '{'
+		'title' title=STRING
+		'showAsAction' showAsAction=('ifRoom' | 'never')
+		('icon' icon=STRING)?
+	'}';
 
 Tab:
 	'tab' (selected='selected')? '{'
 		'text' text=STRING
-		('view' view=Fragment)?
+		(frag=Fragment)?
 	'}';
 
 Row:
 	'row' (selected='selected')? '{'
 		'text' text=STRING
 	'}';
-
+	
 Fragment:
 	'fragment' '{'
+		view=View
+	'}';
+
+View:
+	{View} elements+=(Button | TextField | TextView)*;
+
+Button:
+	'button' '{'
+		'text' text=STRING
+	'}';
+	
+TextField:
+	'textField' '{'
+		'inputType' inputType=('date' | 'emailAddress' | 'multiLine' | 'number' | 'numberDecimal' | 'password' | 'personName' | 'postalAddress' | 'time')
+		('hint' hint=STRING)?
+	'}';
+	
+TextView:
+	'textView' '{'
+		'text' text=STRING
+		'appearance' appearance=('large' | 'medium' | 'small')
 	'}';

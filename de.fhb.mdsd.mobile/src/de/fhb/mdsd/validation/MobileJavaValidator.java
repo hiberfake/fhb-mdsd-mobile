@@ -4,7 +4,7 @@ import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.Check;
 
 import de.fhb.mdsd.mobile.MobilePackage;
-import de.fhb.mdsd.mobile.NavigationType;
+import de.fhb.mdsd.mobile.Navigation;
 import de.fhb.mdsd.mobile.Row;
 import de.fhb.mdsd.mobile.Tab;
 
@@ -18,7 +18,7 @@ public class MobileJavaValidator extends AbstractMobileJavaValidator {
 //	}
 	
 	@Check
-	public void checkNavigationType(NavigationType n) {
+	public void checkNavigationType(Navigation n) {
 		boolean usingTabs = false;
 		boolean usingDropdown = false;
 		for (EObject element : n.getElements()) {
@@ -27,7 +27,7 @@ public class MobileJavaValidator extends AbstractMobileJavaValidator {
 			} else if (element instanceof Row && !usingTabs) {
 				usingDropdown = true;
 			} else {
-				error("Use only one navigation type", MobilePackage.Literals.NAVIGATION_TYPE__ELEMENTS);
+				error("Use only one navigation type", MobilePackage.Literals.NAVIGATION__ELEMENTS);
 			}
 		}
 	}
