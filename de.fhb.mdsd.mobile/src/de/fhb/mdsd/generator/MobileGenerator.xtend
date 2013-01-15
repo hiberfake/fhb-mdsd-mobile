@@ -7,8 +7,10 @@ import de.fhb.mdsd.mobile.Activity
 import de.fhb.mdsd.mobile.App
 import de.fhb.mdsd.mobile.Button
 import de.fhb.mdsd.mobile.CheckBoxPreference
+import de.fhb.mdsd.mobile.CustomFragment
 import de.fhb.mdsd.mobile.EditTextPreference
 import de.fhb.mdsd.mobile.Entries
+import de.fhb.mdsd.mobile.ListFragment
 import de.fhb.mdsd.mobile.ListPreference
 import de.fhb.mdsd.mobile.Menu
 import de.fhb.mdsd.mobile.PreferenceActivity
@@ -31,12 +33,28 @@ class MobileGenerator implements IGenerator {
     	fsa.generateFile("../res/values/styles.xml", resource.allContents.filter(typeof(App)).head.compileStyles)
     	
     	for (a : resource.allContents.toIterable.filter(typeof(Activity))) {
-      		fsa.generateFile(resource.allContents.filter(typeof(App)).head.packageName.replace(".", "/") + "/" + a.name.toFirstUpper + "Activity.java", a.compileActivity)
+    		/*
+	    	 * Für jede Activity wird eine JAVA-Klasse generiert
+	    	 */
+      		fsa.generateFile(resource.allContents.filter(typeof(App)).head.packageName.replace(".", "/") + "/" + a.name.toLowerCase.toFirstUpper + "Activity.java", a.compileActivity)
       		fsa.generateFile("../res/layout/activity_" + a.name.toLowerCase + ".xml", a.compileLayout)
       		if (a.navigation != null && a.navigation.elements.size > 0) {
 	      		for (t : a.navigation.elements.filter(typeof(Tab))) {
-					if (t.frag != null) {
-						fsa.generateFile("../res/layout/fragment_" + t.text.toLowerCase.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss") + ".xml", t.frag.view.compileView)
+					if (t.frag instanceof CustomFragment) {
+						fsa.generateFile(resource.allContents.filter(typeof(App)).head.packageName.replace(".", "/") + "/" + (t.frag as CustomFragment).name.toLowerCase.toFirstUpper + "Fragment.java", compileCustomFragment(t.frag as CustomFragment, resource.allContents.filter(typeof(App)).head.packageName))
+						fsa.generateFile("../res/layout/fragment_" + t.frag.name.toLowerCase + ".xml", (t.frag as CustomFragment).view.compileView)
+					}
+					if (t.frag instanceof ListFragment) {
+						fsa.generateFile(resource.allContents.filter(typeof(App)).head.packageName.replace(".", "/") + "/" + (t.frag as ListFragment).name.toLowerCase.toFirstUpper + "Fragment.java", compileListFragment(t.frag as ListFragment, resource.allContents.filter(typeof(App)).head.packageName))
+					}
+				}
+				for (r : a.navigation.elements.filter(typeof(Row))) {
+					if (r.frag instanceof CustomFragment) {
+						fsa.generateFile(resource.allContents.filter(typeof(App)).head.packageName.replace(".", "/") + "/" + (r.frag as CustomFragment).name.toLowerCase.toFirstUpper + "Fragment.java", compileCustomFragment(r.frag as CustomFragment, resource.allContents.filter(typeof(App)).head.packageName))
+						fsa.generateFile("../res/layout/fragment_" + r.frag.name.toLowerCase + ".xml", (r.frag as CustomFragment).view.compileView)
+					}
+					if (r.frag instanceof ListFragment) {
+						fsa.generateFile(resource.allContents.filter(typeof(App)).head.packageName.replace(".", "/") + "/" + (r.frag as ListFragment).name.toLowerCase.toFirstUpper + "Fragment.java", compileListFragment(r.frag as ListFragment, resource.allContents.filter(typeof(App)).head.packageName))
 					}
 				}
 			}
@@ -54,7 +72,10 @@ class MobileGenerator implements IGenerator {
     		fsa.generateFile("../res/values/arrays.xml", compileArrays(resource.allContents.toIterable.filter(typeof(Entries))))
     	}
     }
-  
+	
+	/*
+	 * Generiert den das Android-Manifest
+	 */
   	def compileManifest(Resource resource) '''
 		<?xml version="1.0" encoding="utf-8"?>
 		<manifest xmlns:android="http://schemas.android.com/apk/res/android"
@@ -97,6 +118,9 @@ class MobileGenerator implements IGenerator {
 		</manifest>
   	'''
 
+	/*
+	 * Generiert eine XML-Datei mit den Design-Angaben
+	 */
 	def compileStyles(App app) '''
 		<resources>
 			
@@ -110,7 +134,10 @@ class MobileGenerator implements IGenerator {
 		
 		</resources>
 	'''
-  	  
+  	
+  	/*
+  	 * Erstellt den Java-Code für eine Activity
+  	 */  
 	def compileActivity(Activity a) '''
 		«IF a.eContainer != null»
 		package «a.eContainer.eAllContents.toIterable.filter(typeof(App)).head.packageName»;
@@ -260,20 +287,23 @@ class MobileGenerator implements IGenerator {
 				
 				@Override
 				public Fragment getItem(int position) {
-					Fragment fragment = new SectionFragment();
-					Bundle args = new Bundle();
-					args.putInt(SectionFragment.ARG_SECTION_NUMBER, position + 1);
+					Fragment fragment = new Fragment();
 					switch (position) {
 					«FOR t : a.navigation.elements.filter(typeof(Tab))»
 					case «a.navigation.elements.indexOf(t)»:
-						args.putString(SectionFragment.ARG_LAYOUT, "fragment_«t.text.toLowerCase.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")»");
-						break;
+						«IF t.frag != null»
+						fragment = new «t.frag.name.toLowerCase.toFirstUpper»Fragment();
+						«IF t.frag instanceof CustomFragment»
+						Bundle args = new Bundle();
+						args.putString(SectionFragment.ARG_LAYOUT, "fragment_«t.frag.name.toLowerCase»");
+						fragment.setArguments(args);
+						«ENDIF»
+						«ENDIF»
+						return fragment;
 					«ENDFOR»
 					default:
-						break;
+						return null;
 					}
-					fragment.setArguments(args);
-					return fragment;
 				}
 
 				@Override
@@ -290,40 +320,70 @@ class MobileGenerator implements IGenerator {
 			«ELSEIF a.navigation != null && a.navigation.elements.filter(typeof(Row)).size > 0»
 			@Override
 			public boolean onNavigationItemSelected(int position, long id) {
-				Fragment fragment = new SectionFragment();
-				Bundle args = new Bundle();
-				args.putInt(SectionFragment.ARG_SECTION_NUMBER, position + 1);
+				Fragment fragment = new Fragment();
 				switch (position) {
 				«FOR r : a.navigation.elements.filter(typeof(Row))»
 				case «a.navigation.elements.indexOf(r)»:
-					args.putString(SectionFragment.ARG_LAYOUT, "fragment_«r.text.toLowerCase.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")»");
+					«IF r.frag != null»
+					fragment = new «r.frag.name.toLowerCase.toFirstUpper»Fragment();
+					«IF r.frag instanceof CustomFragment»
+					Bundle args = new Bundle();
+					args.putString(SectionFragment.ARG_LAYOUT, "fragment_«r.frag.name.toLowerCase»");
+					fragment.setArguments(args);
+					«ENDIF»
+					«ENDIF»
 					break;
 				«ENDFOR»
 				default:
 					break;
 				}
-				fragment.setArguments(args);
 				getSupportFragmentManager().beginTransaction().replace(R.id.container, fragment).commit();
 				return true;
 			}
 			
 			«ENDIF»
-			
-			«IF a.navigation != null && a.navigation.elements.size > 0»
-			public static class SectionFragment extends Fragment {
+		}
+	'''
+	
+	def compileListFragment(ListFragment f, String pck) '''
+		package «pck»;
+		
+		import android.os.Bundle;
+		import android.support.v4.app.ListFragment;
+		import android.view.View;
+		import android.widget.ArrayAdapter;
+		import android.widget.ListView;
 
-				public static final String ARG_SECTION_NUMBER = "section_number";
-				public static final String ARG_LAYOUT = "layout";
-				
-				public SectionFragment() {
-				}
-				
-				@Override
-				public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-					return inflater.inflate(getResources().getIdentifier("layout/" + getArguments().getString(SectionFragment.ARG_LAYOUT), "layout", getActivity().getPackageName()), container, false);
-				}
+		public class «f.name.toLowerCase.toFirstUpper»Fragment extends ListFragment {
+			
+			@Override
+			public void onActivityCreated(Bundle savedInstanceState) {
+				super.onActivityCreated(savedInstanceState);
+
+				ArrayAdapter<String> adapter = new ArrayAdapter<String>(getActivity(), android.R.layout.simple_list_item_1, getResources().getStringArray(R.array.«f.entries.name.toLowerCase»));
+				setListAdapter(adapter);
 			}
-			«ENDIF»
+		
+			@Override
+			public void onListItemClick(ListView l, View v, int position, long id) {
+				
+			}
+		}
+	'''
+	
+	def compileCustomFragment(CustomFragment f, String pck) '''
+		package «pck»;
+		
+		import android.support.v4.app.Fragment;
+		
+		public class «f.name.toLowerCase.toFirstUpper»Fragment extends Fragment {
+			
+			public static final String ARG_LAYOUT = "layout";
+			
+			@Override
+			public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+				return inflater.inflate(getResources().getIdentifier("layout/" + getArguments().getString(SectionFragment.ARG_LAYOUT), "layout", getActivity().getPackageName()), container, false);
+			}
 		}
 	'''
 	
