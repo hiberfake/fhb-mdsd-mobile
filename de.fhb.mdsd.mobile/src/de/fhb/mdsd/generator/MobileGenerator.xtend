@@ -17,6 +17,13 @@ import org.eclipse.xtext.generator.IFileSystemAccess
 import org.eclipse.xtext.generator.IGenerator
 import org.eclipse.xtext.naming.IQualifiedNameProvider
 import de.fhb.mdsd.mobile.View
+import de.fhb.mdsd.mobile.PreferenceActivity
+import org.eclipse.emf.common.util.EList
+import de.fhb.mdsd.mobile.PreferenceCategory
+import de.fhb.mdsd.mobile.CheckBoxPreference
+import de.fhb.mdsd.mobile.ListPreference
+import de.fhb.mdsd.mobile.EditTextPreference
+import de.fhb.mdsd.mobile.SwitchPreference
 
 class MobileGenerator implements IGenerator {
 	
@@ -28,11 +35,29 @@ class MobileGenerator implements IGenerator {
     	
     	for (a : resource.allContents.toIterable.filter(typeof(Activity))) {
       		fsa.generateFile(resource.allContents.filter(typeof(App)).head.packageName.replace(".", "/") + "/" + a.name.toFirstUpper + "Activity.java", a.compileActivity)
-      		fsa.generateFile("../res/layout/" + a.name.toLowerCase + ".xml", a.compileLayout)
+      		fsa.generateFile("../res/layout/activity_" + a.name.toLowerCase + ".xml", a.compileLayout)
+      		if (a.navigation != null && a.navigation.elements.size > 0) {
+	      		for (t : a.navigation.elements.filter(typeof(Tab))) {
+					if (t.frag != null) {
+						fsa.generateFile("../res/layout/fragment_" + t.text.toLowerCase.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss") + ".xml", t.frag.view.compileView)
+					}
+				}
+			}
       		// TODO generate file for fragments
       		if (a.menu != null) {
-      			fsa.generateFile("../res/menu/" + a.name.toLowerCase + ".xml", a.menu.compileMenu)
+      			fsa.generateFile("../res/menu/menu_" + a.name.toLowerCase + ".xml", a.menu.compileMenu)
+//      			for (i : a.menu.menuItems) {
+//      				if (i.settings != null) {
+//      					fsa.generateFile(resource.allContents.filter(typeof(App)).head.packageName.replace(".", "/") + "/SettingsActivity.java", a.compileSettingsActivity)
+//      					fsa.generateFile("../res/xml/preferences.xml", "")
+//      				}
+//      			}
       		}
+    	}
+    	
+    	if (resource.allContents.filter(typeof(PreferenceActivity)).head != null) {
+    		fsa.generateFile(resource.allContents.filter(typeof(App)).head.packageName.replace(".", "/") + "/SettingsActivity.java", resource.allContents.filter(typeof(PreferenceActivity)).head.compilePreferenceActivity)
+    		fsa.generateFile("../res/xml/preferences.xml", resource.allContents.filter(typeof(PreferenceActivity)).head.categories.compilePreferences)
     	}
     }
   
@@ -50,28 +75,29 @@ class MobileGenerator implements IGenerator {
 			<application
 				android:allowBackup="true"
 				android:icon="@drawable/ic_launcher"
-				android:label="@string/app_name"
-				android:theme="@style/AppTheme"«IF !resource.allContents.filter(typeof(App)).head.bottomBar.equals("true")» >
-				«ELSE»
-				android:uiOptions="splitActionBarWhenNarrow" >
-				«ENDIF»
+				android:label="«IF resource.allContents.filter(typeof(App)).head.name != null»«resource.allContents.filter(typeof(App)).head.name»«ELSE»@string/app_name«ENDIF»"
+				android:theme="@style/AppTheme"
+				«IF resource.allContents.filter(typeof(App)).head.bottomBar.equals("true")»
+				android:uiOptions="splitActionBarWhenNarrow"
+				«ENDIF» >
 				«FOR a : resource.allContents.toIterable.filter(typeof(Activity))»
-				«IF a.label != null»
-				<activity
-					android:name=".«a.name.toFirstUpper»Activity"
-					android:label="«a.label»" >
-				«ELSE»
 				<activity android:name="«a.name.toFirstUpper»Activity" >
-				«ENDIF»
 					«IF a.main != null»
 					<intent-filter>
 						<action android:name="android.intent.action.MAIN" />
-						
 						<category android:name="android.intent.category.LAUNCHER" />
 					</intent-filter>
 					«ENDIF»
 				</activity>
-	        	«ENDFOR»
+				«ENDFOR»
+				«IF resource.allContents.filter(typeof(PreferenceActivity)).head != null»
+				<activity
+					android:name=".SettingsActivity" >
+					<intent-filter>
+						<category android:name="android.intent.category.PREFERENCE" />
+					</intent-filter>
+				</activity>
+	        	«ENDIF»
 			</application>
 
 		</manifest>
@@ -84,10 +110,8 @@ class MobileGenerator implements IGenerator {
 			<style name="AppTheme" parent="android:Theme.Holo.Light" />
 			«ELSEIF app.design.equals("dark")»
 			<style name="AppTheme" parent="android:Theme.Holo" />
-			«ELSEIF app.design.equals("light with dark action bar")»
+			«ELSEIF app.design.equals("lightWithDarkActionBar")»
 			<style name="AppTheme" parent="android:Theme.Holo.Light.DarkActionBar" />
-			«ELSE»
-			<style name="AppTheme" parent="android:Theme.Holo.Light" />
 			«ENDIF»
 		
 		</resources>
@@ -102,6 +126,7 @@ class MobileGenerator implements IGenerator {
 		import android.app.FragmentTransaction;
 		import android.content.Intent;
 		import android.os.Bundle;
+		import android.os.Handler;
 		import android.support.v4.app.Fragment;
 		import android.support.v4.app.FragmentActivity;
 		import android.support.v4.app.FragmentManager;
@@ -110,6 +135,7 @@ class MobileGenerator implements IGenerator {
 		import android.view.Gravity;
 		import android.view.LayoutInflater;
 		import android.view.Menu;
+		import android.view.MenuItem;
 		import android.view.View;
 		import android.view.ViewGroup;
 		import android.widget.ArrayAdapter;
@@ -126,7 +152,7 @@ class MobileGenerator implements IGenerator {
 			@Override
 			protected void onCreate(Bundle savedInstanceState) {
 				super.onCreate(savedInstanceState);
-				setContentView(R.layout.«a.name.toLowerCase»);
+				setContentView(R.layout.activity_«a.name.toLowerCase»);
 				
 				final ActionBar actionBar = getActionBar();
 				«IF a.navigation != null && a.navigation.elements.filter(typeof(Row)).size > 0»
@@ -179,9 +205,43 @@ class MobileGenerator implements IGenerator {
 			«IF a.menu != null»
 			@Override
 			public boolean onCreateOptionsMenu(Menu menu) {
-				getMenuInflater().inflate(R.menu.«a.name.toLowerCase», menu);
+				getMenuInflater().inflate(R.menu.menu_«a.name.toLowerCase», menu);
+				«FOR menuItem : a.menu.menuItems»
+				«IF menuItem.refreshView != null»
+				final MenuItem refresh = (MenuItem) menu.findItem(R.id.menu_refresh);
+				refresh.setOnMenuItemClickListener(new MenuItem.OnMenuItemClickListener() {
+					public boolean onMenuItemClick(MenuItem item) {
+						new Handler().postDelayed(new Runnable() {
+							public void run() {
+								refresh.setActionView(null);
+							}
+						}, 1000);
+						return false;
+					}
+				});
+				«ENDIF»
+				«ENDFOR»
 				return true;
 			}
+			
+			 @Override
+			 public boolean onOptionsItemSelected(MenuItem item) {
+			 	switch (item.getItemId()) {
+			 		case android.R.id.home:
+			 			return false;
+			 		«FOR menuItem : a.menu.menuItems»
+			 		case R.id.menu_«menuItem.id»:
+			 			«IF menuItem.refreshView != null»
+			 			item.setActionView(R.layout.indeterminate_progress_action);
+			 			«ELSEIF menuItem.settings != null»
+			 			startActivity(new Intent(this, SettingsActivity.class));
+			 			«ENDIF»
+			 			return true;
+			 		«ENDFOR»
+			 		default:
+			 			return super.onOptionsItemSelected(item);
+			 	}
+			 }
 			«ENDIF»
 			
 			«IF a.navigation != null && a.navigation.elements.filter(typeof(Tab)).size > 0»
@@ -206,16 +266,25 @@ class MobileGenerator implements IGenerator {
 				
 				@Override
 				public Fragment getItem(int position) {
-					Fragment fragment = new DummySectionFragment();
+					Fragment fragment = new SectionFragment();
 					Bundle args = new Bundle();
-					args.putInt(DummySectionFragment.ARG_SECTION_NUMBER, position + 1);
+					args.putInt(SectionFragment.ARG_SECTION_NUMBER, position + 1);
+					switch (position) {
+					«FOR t : a.navigation.elements.filter(typeof(Tab))»
+					case «a.navigation.elements.indexOf(t)»:
+						args.putString(SectionFragment.ARG_LAYOUT, "fragment_«t.text.toLowerCase.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")»");
+						break;
+					«ENDFOR»
+					default:
+						break;
+					}
 					fragment.setArguments(args);
 					return fragment;
 				}
 
 				@Override
 				public int getCount() {
-					return 3;
+					return «a.navigation.elements.size»;
 				}
 				
 				@Override
@@ -227,9 +296,18 @@ class MobileGenerator implements IGenerator {
 			«ELSEIF a.navigation != null && a.navigation.elements.filter(typeof(Row)).size > 0»
 			@Override
 			public boolean onNavigationItemSelected(int position, long id) {
-				Fragment fragment = new DummySectionFragment();
+				Fragment fragment = new SectionFragment();
 				Bundle args = new Bundle();
-				args.putInt(DummySectionFragment.ARG_SECTION_NUMBER, position + 1);
+				args.putInt(SectionFragment.ARG_SECTION_NUMBER, position + 1);
+				switch (position) {
+				«FOR r : a.navigation.elements.filter(typeof(Row))»
+				case «a.navigation.elements.indexOf(r)»:
+					args.putString(SectionFragment.ARG_LAYOUT, "fragment_«r.text.toLowerCase.replace("ä", "ae").replace("ö", "oe").replace("ü", "ue").replace("ß", "ss")»");
+					break;
+				«ENDFOR»
+				default:
+					break;
+				}
 				fragment.setArguments(args);
 				getSupportFragmentManager().beginTransaction().replace(R.id.container, fragment).commit();
 				return true;
@@ -238,23 +316,136 @@ class MobileGenerator implements IGenerator {
 			«ENDIF»
 			
 			«IF a.navigation != null && a.navigation.elements.size > 0»
-			public static class DummySectionFragment extends Fragment {
+			public static class SectionFragment extends Fragment {
 
 				public static final String ARG_SECTION_NUMBER = "section_number";
+				public static final String ARG_LAYOUT = "layout";
 				
-				public DummySectionFragment() {
+				public SectionFragment() {
 				}
 				
 				@Override
 				public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-					TextView textView = new TextView(getActivity());
-					textView.setGravity(Gravity.CENTER);
-					textView.setText(Integer.toString(getArguments().getInt(ARG_SECTION_NUMBER)));
-					return textView;
+					return inflater.inflate(getResources().getIdentifier("layout/" + getArguments().getString(SectionFragment.ARG_LAYOUT), "layout", getActivity().getPackageName()), container, false);
 				}
 			}
 			«ENDIF»
 		}
+	'''
+	
+	def compilePreferenceActivity(PreferenceActivity a) '''
+		«IF a.eContainer != null»
+		package «a.eContainer.eAllContents.toIterable.filter(typeof(App)).head.packageName»;
+		«ENDIF»
+		
+		import android.content.Intent;
+		import android.os.Bundle;
+		import android.preference.PreferenceActivity;
+		import android.view.MenuItem;
+		
+		public class SettingsActivity extends PreferenceActivity {
+			
+			@Override
+			protected void onCreate(Bundle savedInstanceState) {
+				super.onCreate(savedInstanceState);
+				
+				addPreferencesFromResource(R.xml.preferences);
+			}
+			
+			@Override
+			public boolean onOptionsItemSelected(MenuItem item) {
+				switch (item.getItemId()) {
+					case android.R.id.home:
+						startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+						return true;
+					default:
+						return super.onOptionsItemSelected(item);
+				}
+			}
+		}
+	'''
+	
+	def compilePreferences(EList<PreferenceCategory> categories) '''
+		<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
+		
+			«FOR c : categories»
+			<PreferenceCategory android:title="«c.title»" >
+				«FOR p : c.preferences»
+				«IF p instanceof CheckBoxPreference»
+				«compileCheckBoxPreference(p as CheckBoxPreference)»
+				«ELSEIF p instanceof EditTextPreference»
+				«compileEditTextPreference(p as EditTextPreference)»
+				«ELSEIF p instanceof ListPreference»
+				«compileListPreference(p as ListPreference)»
+				«ELSEIF p instanceof SwitchPreference»
+				«compileSwitchPreference(p as SwitchPreference)»
+				«ENDIF»
+				«ENDFOR»
+			</PreferenceCategory>
+			«ENDFOR»
+		
+		</PreferenceScreen>
+	'''
+	
+	def compileCheckBoxPreference(CheckBoxPreference p) '''
+		<CheckBoxPreference
+			android:key="«p.key»"
+			android:title="«p.title»"
+			«IF p.defaultValue != null»
+			android:defaultValue="false"
+			«ENDIF»
+			«IF p.icon != null»
+			android:icon="@drawable/«p.icon»"
+			«ENDIF»
+			«IF p.summary != null»
+			android:summary="«p.summary»"
+			«ELSE»
+			android:summaryOn="«p.summaryOn»"
+			android:summaryOff="«p.summaryOff»"
+			«ENDIF» />
+	'''
+	
+	def compileEditTextPreference(EditTextPreference p) '''
+		<EditTextPreference
+			android:key="«p.key»"
+			android:title="«p.title»"
+			«IF p.icon != null»
+			android:icon="@drawable/«p.icon»"
+			«ENDIF»
+			«IF p.summary != null»
+			android:summary="«p.summary»"
+			«ENDIF» />
+	'''
+	
+	def compileListPreference(ListPreference p) '''
+		«IF p.multi != null»
+		<MultiSelectListPreference
+		«ELSE»
+		<ListPreference
+		«ENDIF»
+			android:key="«p.key»"
+			android:title="«p.title»"
+			«IF p.icon != null»
+			android:icon="@drawable/«p.icon»"
+			«ENDIF»
+			«IF p.summary != null»
+			android:summary="«p.summary»"
+			«ENDIF» />
+	'''
+	
+	def compileSwitchPreference(SwitchPreference p) '''
+		<SwitchPreference
+			android:key="«p.key»"
+			android:title="«p.title»"
+			«IF p.icon != null»
+			android:icon="@drawable/«p.icon»"
+			«ENDIF»
+			«IF p.summary != null»
+			android:summary="«p.summary»"
+			«ELSE»
+			android:summaryOn="«p.summaryOn»"
+			android:summaryOff="«p.summaryOff»"
+			«ENDIF» />
 	'''
 	
 	def compileLayout(Activity a) '''
@@ -263,11 +454,6 @@ class MobileGenerator implements IGenerator {
 			android:id="@+id/pager"
 			android:layout_width="match_parent"
 			android:layout_height="match_parent" />
-		«FOR t : a.navigation.elements.filter(typeof(Tab))»
-		«IF t.frag != null»
-		«t.frag.view.compileView»
-		«ENDIF»
-		«ENDFOR»
 		«ELSEIF a.navigation != null && a.navigation.elements.filter(typeof(Row)).size > 0»
 		<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
 			android:id="@+id/container"
@@ -342,12 +528,13 @@ class MobileGenerator implements IGenerator {
 	def compileMenu(Menu menu) '''
 		<menu xmlns:android="http://schemas.android.com/apk/res/android" >
 		
-			«FOR item : menu.items»
+			«FOR menuItem : menu.menuItems»
 			<item
-				android:id="@+id/menu_«item.title.toLowerCase»"
-				«IF item.icon != null»android:icon="@drawable/«item.icon»"«ENDIF»
-				android:showAsAction="«item.showAsAction»"
-				android:title="«item.title»"/>
+				android:id="@+id/menu_«menuItem.id»"
+				android:title="«menuItem.title»"
+				«IF menuItem.icon != null»android:icon="@drawable/«menuItem.icon»"«ENDIF»
+				android:showAsAction="«menuItem.showAsAction»«IF menuItem.searchView != null»|collapseActionView«ENDIF»"
+				«IF menuItem.searchView != null»android:actionViewClass="android.widget.SearchView"«ENDIF» />
 			«ENDFOR»
 		
 		</menu>

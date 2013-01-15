@@ -4,11 +4,13 @@ generate mobile "http://www.fhb.de/mdsd/Mobile"
 
 Model:
 	app=App
-	(activities+=Activity)*;
+	(activities+=Activity)*
+	(preferenceActivity=PreferenceActivity);
 
 App:
 	'app' '{'
 		'packageName' packageName=QualifiedName
+		'name' name=STRING
 		'design' design=('light' | 'dark' | 'lightWithDarkActionBar')
 		('bottomBar' bottomBar=('true' | 'false'))?
 	'}';
@@ -29,15 +31,66 @@ Activity:
 			view=View
 		'}')?
 	'}';
+	
+PreferenceActivity:
+	'preferences' '{'
+		{PreferenceActivity} (categories+=PreferenceCategory)*
+	'}';
+
+PreferenceCategory:
+	'preferenceCategory' title=STRING '{'
+		(preferences+=Preference)*
+	'}';
+	
+Preference:
+	(CheckBoxPreference | EditTextPreference | ListPreference | SwitchPreference);
+	
+CheckBoxPreference:
+	'checkBoxPreference' '{'
+		'key' key=STRING
+        'title' title=STRING
+        ('icon' icon=STRING)?
+		('defaultValue' defaultValue="true" | "false")?        
+        ('summary' summary=STRING | 
+        	('summaryOn' summaryOn=STRING
+        	 'summaryOff' summaryOff=STRING))?
+	'}';
+	
+EditTextPreference:
+	'editTextPreference' '{'
+		'key' key=STRING
+        'title' title=STRING
+        ('icon' icon=STRING)?       
+        ('summary' summary=STRING)?
+	'}';
+	
+ListPreference:
+	'listPreference' (multi='multi')? '{'
+		'key' key=STRING
+        'title' title=STRING
+        ('icon' icon=STRING)?       
+        ('summary' summary=STRING)?
+	'}';
+	
+SwitchPreference:
+	'switchPreference' '{'
+		'key' key=STRING
+        'title' title=STRING
+        ('icon' icon=STRING)?
+        ('summary' summary=STRING | 
+        	('summaryOn' summaryOn=STRING
+        	 'summaryOff' summaryOff=STRING))?
+	'}';
 
 Navigation:
 	{Navigation} elements+=(Tab | Row)*;
 	
 Menu:
-	{Menu} items+=MenuItem*;
+	{Menu} menuItems+=MenuItem*;
 	
 MenuItem:
-	'item' '{'
+	'menuItem' (searchView='searchView' | refreshView='refreshView' | settings='settings')? '{'
+		'id' id=STRING
 		'title' title=STRING
 		'showAsAction' showAsAction=('ifRoom' | 'never')
 		('icon' icon=STRING)?
@@ -52,6 +105,7 @@ Tab:
 Row:
 	'row' (selected='selected')? '{'
 		'text' text=STRING
+		(frag=Fragment)?
 	'}';
 	
 Fragment:
