@@ -24,6 +24,7 @@ import de.fhb.mdsd.mobile.CheckBoxPreference
 import de.fhb.mdsd.mobile.ListPreference
 import de.fhb.mdsd.mobile.EditTextPreference
 import de.fhb.mdsd.mobile.SwitchPreference
+import java.io.File
 
 class MobileGenerator implements IGenerator {
 	
@@ -43,15 +44,8 @@ class MobileGenerator implements IGenerator {
 					}
 				}
 			}
-      		// TODO generate file for fragments
       		if (a.menu != null) {
       			fsa.generateFile("../res/menu/menu_" + a.name.toLowerCase + ".xml", a.menu.compileMenu)
-//      			for (i : a.menu.menuItems) {
-//      				if (i.settings != null) {
-//      					fsa.generateFile(resource.allContents.filter(typeof(App)).head.packageName.replace(".", "/") + "/SettingsActivity.java", a.compileSettingsActivity)
-//      					fsa.generateFile("../res/xml/preferences.xml", "")
-//      				}
-//      			}
       		}
     	}
     	
