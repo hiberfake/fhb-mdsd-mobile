@@ -68,6 +68,7 @@ ListPreference:
 	'listPreference' (multi='multi')? '{'
 		'key' key=STRING
         'title' title=STRING
+        entries=Entries
         ('icon' icon=STRING)?       
         ('summary' summary=STRING)?
 	'}';
@@ -81,6 +82,14 @@ SwitchPreference:
         	('summaryOn' summaryOn=STRING
         	 'summaryOff' summaryOff=STRING))?
 	'}';
+	
+Entries:
+	'entries' name=ID '{'
+		(items+=Item)*
+	'}';
+	
+Item:
+	'item' label=STRING 'value' value=STRING;
 
 Navigation:
 	{Navigation} elements+=(Tab | Row)*;

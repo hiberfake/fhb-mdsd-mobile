@@ -3,33 +3,29 @@
  */
 package de.fhb.mdsd.generator
 
-import com.google.inject.Inject
 import de.fhb.mdsd.mobile.Activity
 import de.fhb.mdsd.mobile.App
 import de.fhb.mdsd.mobile.Button
+import de.fhb.mdsd.mobile.CheckBoxPreference
+import de.fhb.mdsd.mobile.EditTextPreference
+import de.fhb.mdsd.mobile.Entries
+import de.fhb.mdsd.mobile.ListPreference
 import de.fhb.mdsd.mobile.Menu
+import de.fhb.mdsd.mobile.PreferenceActivity
+import de.fhb.mdsd.mobile.PreferenceCategory
 import de.fhb.mdsd.mobile.Row
+import de.fhb.mdsd.mobile.SwitchPreference
 import de.fhb.mdsd.mobile.Tab
 import de.fhb.mdsd.mobile.TextField
 import de.fhb.mdsd.mobile.TextView
+import de.fhb.mdsd.mobile.View
+import org.eclipse.emf.common.util.EList
 import org.eclipse.emf.ecore.resource.Resource
 import org.eclipse.xtext.generator.IFileSystemAccess
 import org.eclipse.xtext.generator.IGenerator
-import org.eclipse.xtext.naming.IQualifiedNameProvider
-import de.fhb.mdsd.mobile.View
-import de.fhb.mdsd.mobile.PreferenceActivity
-import org.eclipse.emf.common.util.EList
-import de.fhb.mdsd.mobile.PreferenceCategory
-import de.fhb.mdsd.mobile.CheckBoxPreference
-import de.fhb.mdsd.mobile.ListPreference
-import de.fhb.mdsd.mobile.EditTextPreference
-import de.fhb.mdsd.mobile.SwitchPreference
-import java.io.File
 
 class MobileGenerator implements IGenerator {
 	
-	@Inject extension IQualifiedNameProvider
- 
   	override void doGenerate(Resource resource, IFileSystemAccess fsa) {
     	fsa.generateFile("../AndroidManifest.xml", resource.compileManifest);
     	fsa.generateFile("../res/values/styles.xml", resource.allContents.filter(typeof(App)).head.compileStyles)
@@ -52,6 +48,10 @@ class MobileGenerator implements IGenerator {
     	if (resource.allContents.filter(typeof(PreferenceActivity)).head != null) {
     		fsa.generateFile(resource.allContents.filter(typeof(App)).head.packageName.replace(".", "/") + "/SettingsActivity.java", resource.allContents.filter(typeof(PreferenceActivity)).head.compilePreferenceActivity)
     		fsa.generateFile("../res/xml/preferences.xml", resource.allContents.filter(typeof(PreferenceActivity)).head.categories.compilePreferences)
+    	}
+    	
+    	if (resource.allContents.filter(typeof(Entries)) != null) {
+    		fsa.generateFile("../res/values/arrays.xml", compileArrays(resource.allContents.toIterable.filter(typeof(Entries))))
     	}
     }
   
@@ -126,14 +126,12 @@ class MobileGenerator implements IGenerator {
 		import android.support.v4.app.FragmentManager;
 		import android.support.v4.app.FragmentPagerAdapter;
 		import android.support.v4.view.ViewPager;
-		import android.view.Gravity;
 		import android.view.LayoutInflater;
 		import android.view.Menu;
 		import android.view.MenuItem;
 		import android.view.View;
 		import android.view.ViewGroup;
 		import android.widget.ArrayAdapter;
-		import android.widget.TextView;
 		
 		public class «a.name»Activity extends FragmentActivity «IF a.navigation != null»«IF a.navigation.elements.filter(typeof(Tab)).size > 0»implements ActionBar.TabListener «ELSEIF a.navigation.elements.filter(typeof(Row)).size > 0»implements ActionBar.OnNavigationListener «ENDIF»«ENDIF»{
 			
@@ -228,7 +226,9 @@ class MobileGenerator implements IGenerator {
 			 			«IF menuItem.refreshView != null»
 			 			item.setActionView(R.layout.indeterminate_progress_action);
 			 			«ELSEIF menuItem.settings != null»
-			 			startActivity(new Intent(this, SettingsActivity.class));
+			 			Intent intent = new Intent(this, SettingsActivity.class);
+			 			intent.putExtra(SettingsActivity.EXTRA_PARENT, this.getClass().getName());
+			 			startActivity(intent);
 			 			«ENDIF»
 			 			return true;
 			 		«ENDFOR»
@@ -332,6 +332,7 @@ class MobileGenerator implements IGenerator {
 		package «a.eContainer.eAllContents.toIterable.filter(typeof(App)).head.packageName»;
 		«ENDIF»
 		
+		import android.app.ActionBar;
 		import android.content.Intent;
 		import android.os.Bundle;
 		import android.preference.PreferenceActivity;
@@ -339,9 +340,14 @@ class MobileGenerator implements IGenerator {
 		
 		public class SettingsActivity extends PreferenceActivity {
 			
+			public static final String EXTRA_PARENT = "parent";
+			
 			@Override
 			protected void onCreate(Bundle savedInstanceState) {
 				super.onCreate(savedInstanceState);
+				
+				final ActionBar actionBar = getActionBar();
+				actionBar.setDisplayHomeAsUpEnabled(true);
 				
 				addPreferencesFromResource(R.xml.preferences);
 			}
@@ -350,7 +356,13 @@ class MobileGenerator implements IGenerator {
 			public boolean onOptionsItemSelected(MenuItem item) {
 				switch (item.getItemId()) {
 					case android.R.id.home:
-						startActivity(new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP));
+						Class parent = null;
+						try {
+							parent = Class.forName(getIntent().getStringExtra(EXTRA_PARENT));
+						} catch (ClassNotFoundException e) {}
+						Intent intent = new Intent(this, parent);
+						intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+						startActivity(intent);
 						return true;
 					default:
 						return super.onOptionsItemSelected(item);
@@ -419,6 +431,8 @@ class MobileGenerator implements IGenerator {
 		«ENDIF»
 			android:key="«p.key»"
 			android:title="«p.title»"
+			android:entries="@array/«p.entries.name»"
+			android:entryValues="@array/«p.entries.name»_values"
 			«IF p.icon != null»
 			android:icon="@drawable/«p.icon»"
 			«ENDIF»
@@ -532,5 +546,31 @@ class MobileGenerator implements IGenerator {
 			«ENDFOR»
 		
 		</menu>
+	'''
+	
+	def compileArrays(Iterable<Entries> list) '''
+		<?xml version="1.0" encoding="utf-8"?>
+		<resources>
+			«FOR e : list»
+			«compileEntries(e)»
+			«compileEntryValues(e)»
+			«ENDFOR»
+		</resources>
+	'''
+	
+	def compileEntries(Entries e) '''
+		<string-array name="«e.name»">
+			«FOR i : e.items»
+			<item>«i.label»</item>
+			«ENDFOR»
+		</string-array>
+	'''
+	
+	def compileEntryValues(Entries e) '''
+		<string-array name="«e.name»_values">
+			«FOR i : e.items»
+			<item>«i.value»</item>
+			«ENDFOR»
+		</string-array>
 	'''
 }

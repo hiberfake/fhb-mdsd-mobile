@@ -1,8 +1,13 @@
 package de.fhb.mdsd.validation;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.xtext.validation.Check;
 
+import de.fhb.mdsd.mobile.Item;
+import de.fhb.mdsd.mobile.ListPreference;
 import de.fhb.mdsd.mobile.Menu;
 import de.fhb.mdsd.mobile.MenuItem;
 import de.fhb.mdsd.mobile.MobilePackage;
@@ -52,6 +57,17 @@ public class MobileJavaValidator extends AbstractMobileJavaValidator {
 				}
 			} catch (NullPointerException e) {
 			}
+		}
+	}
+	
+	@Check
+	public void checkListPreference(ListPreference p) {
+		List<String> values = new ArrayList<String>();
+		for (Item i : p.getEntries().getItems()) {
+			if (values.contains(i.getValue())) {
+				error("Duplicate values not allowed", MobilePackage.Literals.LIST_PREFERENCE__ENTRIES);
+			}
+			values.add(i.getValue());
 		}
 	}
 }
