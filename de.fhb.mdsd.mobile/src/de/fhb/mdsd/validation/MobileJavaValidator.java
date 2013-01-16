@@ -17,13 +17,9 @@ import de.fhb.mdsd.mobile.Tab;
 
 public class MobileJavaValidator extends AbstractMobileJavaValidator {
 
-//	@Check
-//	public void checkGreetingStartsWithCapital(Greeting greeting) {
-//		if (!Character.isUpperCase(greeting.getName().charAt(0))) {
-//			warning("Name should start with a capital", MyDslPackage.Literals.GREETING__NAME);
-//		}
-//	}
-	
+	/*
+	 * Die Navigation einer Activity darf nur einen Navigationstyp enthalten.
+	 */
 	@Check
 	public void checkNavigation(Navigation navigation) {
 		boolean usingTabs = false;
@@ -39,6 +35,10 @@ public class MobileJavaValidator extends AbstractMobileJavaValidator {
 		}
 	}
 	
+	/*
+	 * Innerhalb der Aktionen in der Aktionsleiste darf höchstens ein Aktion als
+	 * Suche und eine als Aktualisierung gekennzeichnet sein.
+	 */
 	@Check
 	public void checkMenu(Menu menu) {
 		boolean usingSearchView = false;
@@ -60,6 +60,9 @@ public class MobileJavaValidator extends AbstractMobileJavaValidator {
 		}
 	}
 	
+	/*
+	 * Die Werte der Einträge für eine ListPreference dürfen sich nicht doppeln.
+	 */
 	@Check
 	public void checkListPreference(ListPreference p) {
 		List<String> values = new ArrayList<String>();

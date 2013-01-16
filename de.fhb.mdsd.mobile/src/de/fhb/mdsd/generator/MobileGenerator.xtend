@@ -34,10 +34,13 @@ class MobileGenerator implements IGenerator {
     	
     	for (a : resource.allContents.toIterable.filter(typeof(Activity))) {
     		/*
-	    	 * Für jede Activity wird eine JAVA-Klasse generiert
+	    	 * Für jede Activity wird eine Java-Klasse und eine Layout-Datei generiert.
 	    	 */
       		fsa.generateFile(resource.allContents.filter(typeof(App)).head.packageName.replace(".", "/") + "/" + a.name.toLowerCase.toFirstUpper + "Activity.java", a.compileActivity)
       		fsa.generateFile("../res/layout/activity_" + a.name.toLowerCase + ".xml", a.compileLayout)
+      		/*
+      		 * Generierung von Java-Klassen und ggf. Layout-Dateien für die verschiedenen Fragmente.
+      		 */
       		if (a.navigation != null && a.navigation.elements.size > 0) {
 	      		for (t : a.navigation.elements.filter(typeof(Tab))) {
 					if (t.frag instanceof CustomFragment) {
@@ -58,16 +61,25 @@ class MobileGenerator implements IGenerator {
 					}
 				}
 			}
+			/*
+			 * Generierung der Aktionen in der Aktionsleiste
+			 */
       		if (a.menu != null) {
       			fsa.generateFile("../res/menu/menu_" + a.name.toLowerCase + ".xml", a.menu.compileMenu)
       		}
     	}
     	
+    	/*
+    	 * Generierung der Datei für die App-Einstellungen mit den Design Patterns.
+    	 */
     	if (resource.allContents.filter(typeof(PreferenceActivity)).head != null) {
     		fsa.generateFile(resource.allContents.filter(typeof(App)).head.packageName.replace(".", "/") + "/SettingsActivity.java", resource.allContents.filter(typeof(PreferenceActivity)).head.compilePreferenceActivity)
     		fsa.generateFile("../res/xml/preferences.xml", resource.allContents.filter(typeof(PreferenceActivity)).head.categories.compilePreferences)
     	}
     	
+    	/*
+    	 * Generierung einer Datei, die Arrays mit Werten enthält.
+    	 */
     	if (resource.allContents.filter(typeof(Entries)) != null) {
     		fsa.generateFile("../res/values/arrays.xml", compileArrays(resource.allContents.toIterable.filter(typeof(Entries))))
     	}
