@@ -86,7 +86,7 @@ class MobileGenerator implements IGenerator {
     }
 	
 	/*
-	 * Generiert den das Android-Manifest
+	 * Code für das Android-Manifest
 	 */
   	def compileManifest(Resource resource) '''
 		<?xml version="1.0" encoding="utf-8"?>
@@ -131,7 +131,7 @@ class MobileGenerator implements IGenerator {
   	'''
 
 	/*
-	 * Generiert eine XML-Datei mit den Design-Angaben
+	 * Code für eine XML-Datei mit den Design-Angaben
 	 */
 	def compileStyles(App app) '''
 		<resources>
@@ -148,7 +148,7 @@ class MobileGenerator implements IGenerator {
 	'''
   	
   	/*
-  	 * Erstellt den Java-Code für eine Activity
+  	 * Code für Java-Klasse einer Activity
   	 */  
 	def compileActivity(Activity a) '''
 		«IF a.eContainer != null»
@@ -356,6 +356,9 @@ class MobileGenerator implements IGenerator {
 		}
 	'''
 	
+	/*
+	 * Code für ein Fragment, welches eine Listenansicht enthält.
+	 */
 	def compileListFragment(ListFragment f, String pck) '''
 		package «pck»;
 		
@@ -382,6 +385,9 @@ class MobileGenerator implements IGenerator {
 		}
 	'''
 	
+	/*
+	 * Code für ein benutzerdefiniertes Fragment, welches verschiedene View-Elemente enthält.
+	 */
 	def compileCustomFragment(CustomFragment f, String pck) '''
 		package «pck»;
 		
@@ -398,6 +404,9 @@ class MobileGenerator implements IGenerator {
 		}
 	'''
 	
+	/*
+	 * Code für die Activity, die die Einstellungen repräsentiert.
+	 */
 	def compilePreferenceActivity(PreferenceActivity a) '''
 		«IF a.eContainer != null»
 		package «a.eContainer.eAllContents.toIterable.filter(typeof(App)).head.packageName»;
@@ -442,6 +451,9 @@ class MobileGenerator implements IGenerator {
 		}
 	'''
 	
+	/*
+	 * Code zur Darstellung einer Einstellung.
+	 */
 	def compilePreferences(EList<PreferenceCategory> categories) '''
 		<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
 		
@@ -464,6 +476,9 @@ class MobileGenerator implements IGenerator {
 		</PreferenceScreen>
 	'''
 	
+	/*
+	 * Code zur Darstellung einer Einstellung in Form eines Kontrollkästchens.
+	 */
 	def compileCheckBoxPreference(CheckBoxPreference p) '''
 		<CheckBoxPreference
 			android:key="«p.key»"
@@ -482,6 +497,9 @@ class MobileGenerator implements IGenerator {
 			«ENDIF» />
 	'''
 	
+	/*
+	 * Code zur Darstellung einer Einstellung in Form eines Eingabefeldes.
+	 */
 	def compileEditTextPreference(EditTextPreference p) '''
 		<EditTextPreference
 			android:key="«p.key»"
@@ -494,6 +512,9 @@ class MobileGenerator implements IGenerator {
 			«ENDIF» />
 	'''
 	
+	/*
+	 * Code zur Darstellung einer Einstellung in Form einer Liste, in der eine Auswahl getroffen wird.
+	 */
 	def compileListPreference(ListPreference p) '''
 		«IF p.multi != null»
 		<MultiSelectListPreference
@@ -512,6 +533,9 @@ class MobileGenerator implements IGenerator {
 			«ENDIF» />
 	'''
 	
+	/*
+	 * Code zur Darstellung einer Einstellung in Form einer Liste, in der mehrere Einträge ausgewählt werden können.
+	 */
 	def compileSwitchPreference(SwitchPreference p) '''
 		<SwitchPreference
 			android:key="«p.key»"
@@ -527,6 +551,9 @@ class MobileGenerator implements IGenerator {
 			«ENDIF» />
 	'''
 	
+	/*
+	 * Code für eine Layout-Datei einer Activity.
+	 */
 	def compileLayout(Activity a) '''
 		«IF a.navigation != null && a.navigation.elements.filter(typeof(Tab)).size > 0»
 		<android.support.v4.view.ViewPager xmlns:android="http://schemas.android.com/apk/res/android"
@@ -543,6 +570,9 @@ class MobileGenerator implements IGenerator {
 		«ENDIF»
 	'''
 	
+	/*
+	 * Code für eine Layout-Datei einer Activity oder eines benutzerdefinierten Fragments.
+	 */
 	def compileView(View view) '''
 		<?xml version="1.0" encoding="utf-8"?>
 		<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
@@ -564,6 +594,9 @@ class MobileGenerator implements IGenerator {
 		</LinearLayout>
 	'''
 	
+	/*
+	 * Code zur Darstellung eines Buttons.
+	 */
 	def compileButton(Button button, int pos) '''
 		<Button
 			android:id="@+id/button«pos»"
@@ -573,6 +606,9 @@ class MobileGenerator implements IGenerator {
 			android:text="«button.text»" />
 	'''
 	
+	/*
+	 * Code zur Darstellung eines Eingabefeldes.
+	 */
 	def compileTextField(TextField textField, int pos) '''
 		<EditText
 			android:id="@+id/editText«pos»"
@@ -588,6 +624,9 @@ class MobileGenerator implements IGenerator {
 			«ENDIF»
 	'''
 	
+	/*
+	 * Code zur Textrepräsentation.
+	 */
 	def compileTextView(TextView textView, int pos) '''
 		<TextView
 			android:id="@+id/textView«pos»"
@@ -604,6 +643,9 @@ class MobileGenerator implements IGenerator {
 			«ENDIF»
 	'''
 	
+	/*
+	 * Code zur Darstellung und Anordnung der Aktionen in der Aktionsleiste.
+	 */
 	def compileMenu(Menu menu) '''
 		<menu xmlns:android="http://schemas.android.com/apk/res/android" >
 		
@@ -619,6 +661,9 @@ class MobileGenerator implements IGenerator {
 		</menu>
 	'''
 	
+	/*
+	 * Code zur Erstellung von Arrays für Werte.
+	 */
 	def compileArrays(Iterable<Entries> list) '''
 		<?xml version="1.0" encoding="utf-8"?>
 		<resources>
