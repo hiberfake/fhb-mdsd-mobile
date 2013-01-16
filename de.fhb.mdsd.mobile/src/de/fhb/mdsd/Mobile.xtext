@@ -8,7 +8,7 @@ Model:
 	(preferenceActivity=PreferenceActivity);
 
 /*
- * Regel umfasst Information zur eigentlichen Applikation
+ * Regel umfasst Information zur eigentlichen Applikation.
  */
 App:
 	'app' '{'
@@ -22,7 +22,7 @@ QualifiedName:
 	ID ('.' ID)*;
 
 /*
- * Regel für eine Activity
+ * Regel für eine Activity.
  */
 Activity:
 	'activity' (main='main')? name=ID '{'
@@ -40,21 +40,30 @@ Activity:
 	'}';
 	
 /*
- * Regel für eine Activity, die Einstellungsoptionen der Applikation enthält
+ * Regel für eine Activity, die Einstellungsoptionen der Applikation enthält.
  */
 PreferenceActivity:
 	'preferences' '{'
 		{PreferenceActivity} (categories+=PreferenceCategory)*
 	'}';
 
+/*
+ * Regel für eine Kategory in den Einstellungen.
+ */
 PreferenceCategory:
 	'preferenceCategory' title=STRING '{'
 		(preferences+=Preference)*
 	'}';
-	
+
+/*
+ * Regel für eine allgemeine einzelne Einstellung.
+ */	
 Preference:
 	(CheckBoxPreference | EditTextPreference | ListPreference | SwitchPreference);
-	
+
+/*
+ * Regel für eine Einstellung in Form eines Kontrollkästchens.
+ */
 CheckBoxPreference:
 	'checkBoxPreference' '{'
 		'key' key=STRING
@@ -66,6 +75,9 @@ CheckBoxPreference:
         	 'summaryOff' summaryOff=STRING))?
 	'}';
 	
+/*
+ * Regel für eine Einstellung in Form eines Eingabefeldes.
+ */	
 EditTextPreference:
 	'editTextPreference' '{'
 		'key' key=STRING
@@ -73,7 +85,10 @@ EditTextPreference:
         ('icon' icon=STRING)?       
         ('summary' summary=STRING)?
 	'}';
-	
+
+/*
+ * Regel für eine Einstellung in Form einer Auswahlliste.
+ */
 ListPreference:
 	'listPreference' (multi='multi')? '{'
 		'key' key=STRING
@@ -82,7 +97,10 @@ ListPreference:
         ('icon' icon=STRING)?       
         ('summary' summary=STRING)?
 	'}';
-	
+
+/*
+ * Regel für eine Einstellung in Form eines An- und Ausschalters.
+ */
 SwitchPreference:
 	'switchPreference' '{'
 		'key' key=STRING
@@ -92,21 +110,36 @@ SwitchPreference:
         	('summaryOn' summaryOn=STRING
         	 'summaryOff' summaryOff=STRING))?
 	'}';
-	
+
+/*
+ * Regel für ein Array mit Einträgen.
+ */	
 Entries:
 	'entries' name=ID '{'
 		(items+=Item)*
 	'}';
-	
+
+/*
+ * Ein Eintrag in einem Array umfasst ein Label und einen Wert.
+ */	
 Item:
 	'item' label=STRING 'value' value=STRING;
 
+/*
+ * Regel für die mögliche Navigation einer App.
+ */
 Navigation:
 	{Navigation} elements+=(Tab | Row)*;
-	
+
+/*
+ * Regel für ein mögliches Menü mit Aktionen.
+ */
 Menu:
 	{Menu} menuItems+=MenuItem*;
-	
+
+/*
+ * Regel für eine eine Aktion.
+ */
 MenuItem:
 	'menuItem' (searchView='searchView' | refreshView='refreshView' | settings='settings')? '{'
 		'id' id=STRING
@@ -115,45 +148,72 @@ MenuItem:
 		('icon' icon=STRING)?
 	'}';
 
+/*
+ * Regel für einen Tab, der in der Navigation platziert ist.
+ */
 Tab:
 	'tab' (selected='selected')? '{'
 		'text' text=STRING
 		(frag=Fragment)?
 	'}';
 
+/*
+ * Regel für eine Auswahl, die in der Listennavigation platziert ist.
+ */
 Row:
 	'row' (selected='selected')? '{'
 		'text' text=STRING
 		(frag=Fragment)?
 	'}';
-	
+
+/*
+ * Allgemeine Regel für ein Fragment.
+ */
 Fragment:
 	(ListFragment | CustomFragment);
-	
+
+/*
+ * Regel für ein Fragment, welches eine Liste mit Einträgen enthält.
+ */
 ListFragment:
 	'listFragment' name=ID '{'
 		entries=Entries
 	'}';
-	
+
+/*
+ * Regel für ein benutzerdefiniertes Fragment, welches View-Elemente enthält.
+ */	
 CustomFragment:
 	'customFragment' name=ID '{'
 		view=View
 	'}';
-	
+
+/*
+ * Regel für eine View, die diverse Elemente enthalten kann.
+ */
 View:
 	{View} elements+=(Button | TextField | TextView)*;
 
+/*
+ * Regel für einen Button.
+ */
 Button:
 	'button' '{'
 		'text' text=STRING
 	'}';
 	
+/*
+ * Regel für einen Eingabefeld.
+ */
 TextField:
 	'textField' '{'
 		'inputType' inputType=('date' | 'emailAddress' | 'multiLine' | 'number' | 'numberDecimal' | 'password' | 'personName' | 'postalAddress' | 'time')
 		('hint' hint=STRING)?
 	'}';
 	
+/*
+ * Regel für die Darstellung von Texten.
+ */
 TextView:
 	'textView' '{'
 		'text' text=STRING
